@@ -1,6 +1,6 @@
 {
-  "name": "Copper Mountain Weather",
-  "short_name": "CM Weather",
+  "name": "Weather Together",
+  "short_name": "Weather",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f5f5f5",
@@ -18,3 +18,4 @@
     }
   ]
 }
+
