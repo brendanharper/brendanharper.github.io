@@ -3,34 +3,82 @@
 <head>
   <meta charset="utf-8">
   <title>Copper Mountain Weather</title>
-
-  <!-- iOS Standalone & Web App Manifest -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Copper Mountain Weather">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 2em auto; background: #f5f5f5; color: #333; }
-    h1 { text-align: center; margin-bottom: 1em; }
-    .forecast { margin-top: 1em; }
-    .period { border-bottom: 1px solid #ddd; padding: 0.5em 0; }
+    body {
+      font-family: sans-serif;
+      margin: 2em;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    h1 { text-align: center; }
+
+    .container {
+      display: flex;
+      gap: 2em;
+      margin-top: 2em;
+    }
+
+    /* Left column */
+    .locations {
+      flex: 0 0 200px;
+    }
+
+    select {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+
+    /* Right column */
+    .forecast {
+      flex: 1;
+    }
+
+    .period {
+      border-bottom: 1px solid #ddd;
+      padding: 0.5em 0;
+    }
+
     .period:last-child { border: none; }
+
     .temp { font-weight: bold; }
+
     .shortForecast { font-style: italic; }
   </style>
 </head>
 <body>
   <h1>Copper Mountain Weather</h1>
 
-  <div id="weather">Loading…</div>
+  <div class="container">
+    <!-- Left column: location list -->
+    <div class="locations">
+      <label for="locationSelect">Select Location:</label>
+      <select id="locationSelect">
+        <option value="copper">Copper Mountain</option>
+        <option value="abasin">A-Basin</option>
+      </select>
+    </div>
+
+    <!-- Right column: forecast display -->
+    <div class="forecast" id="weather">Loading…</div>
+  </div>
 
   <script>
-    const lat = 39.47523;  // Copper Mountain coordinates
-    const lon = -106.15228;
+    // Define coordinates for each location
+    const locations = {
+      copper: { lat: 39.47523, lon: -106.15228 },
+      abasin: { lat: 39.6429, lon: -105.8711 } // A-Basin coordinates
+    };
+
+    const weatherDiv = document.getElementById('weather');
+    const locationSelect = document.getElementById('locationSelect');
 
     async function getForecast(lat, lon) {
       try {
+        // Show loading text while fetching
+        weatherDiv.innerText = 'Loading…';
+
         const pointRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
         const pointJson = await pointRes.json();
         const forecastUrl = pointJson.properties.forecast;
@@ -44,20 +92,32 @@
       }
     }
 
-    getForecast(lat, lon).then(periods => {
-      const container = document.getElementById('weather');
+    function displayForecast(periods) {
       if (!periods) {
-        container.innerText = 'Could not load forecast.';
+        weatherDiv.innerText = 'Could not load forecast.';
         return;
       }
 
-      container.innerHTML = periods.map(p =>
+      weatherDiv.innerHTML = periods.map(p =>
         `<div class="period">
            <strong>${p.name}</strong>: <span class="shortForecast">${p.shortForecast}</span>, 
            <span class="temp">${p.temperature}°${p.temperatureUnit}</span>
          </div>`
       ).join('');
-    });
+    }
+
+    async function updateWeather() {
+      const selected = locationSelect.value;
+      const coords = locations[selected];
+      const periods = await getForecast(coords.lat, coords.lon);
+      displayForecast(periods);
+    }
+
+    // Initial load
+    updateWeather();
+
+    // Update on selection change
+    locationSelect.addEventListener('change', updateWeather);
   </script>
 </body>
 </html>
