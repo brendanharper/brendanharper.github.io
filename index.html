@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>My Weather</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2em auto; background: #f5f5f5; color: #333; }
+    h1 { text-align: center; }
+    .forecast { margin-top: 1em; }
+    .period { border-bottom: 1px solid #ddd; padding: 0.5em 0; }
+    .period:last-child { border: none; }
+    .temp { font-weight: bold; }
+    .shortForecast { font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>Weather Forecast</h1>
+
+  <div id="weather">Loading…</div>
+
+  <script>
+    const lat = 39.47523;  // Your chosen location
+    const lon = -106.15228;
+
+    async function getForecast(lat, lon) {
+      try {
+        // Step 1: Get metadata including the forecast URL
+        const pointRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
+        const pointJson = await pointRes.json();
+        const forecastUrl = pointJson.properties.forecast;
+
+        // Step 2: Fetch the forecast data
+        const forecastRes = await fetch(forecastUrl);
+        const forecastJson = await forecastRes.json();
+        return forecastJson.properties.periods;
+      } catch (err) {
+        console.error('Error fetching forecast', err);
+        return null;
+      }
+    }
+
+    getForecast(lat, lon).then(periods => {
+      const container = document.getElementById('weather');
+      if (!periods) {
+        container.innerText = 'Could not load forecast.';
+        return;
+      }
+
+      container.innerHTML = periods.map(p =>
+        `<div class="period">
+           <strong>${p.name}</strong>: <span class="shortForecast">${p.shortForecast}</span>, 
+           <span class="temp">${p.temperature}°${p.temperatureUnit}</span>
+         </div>`
+      ).join('');
+    });
+  </script>
+</body>
+</html>
