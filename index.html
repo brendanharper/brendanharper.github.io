@@ -3,6 +3,10 @@
 <head>
   <meta charset="utf-8">
   <title>Weather</title>
+
+  <!-- RESTORED MANIFEST -->
+  <link rel="manifest" href="manifest.json">
+
   <style>
     body {
       font-family: sans-serif;
@@ -210,7 +214,6 @@
 </div>
 
 <script>
-
   // ==========================
   // Default Locations
   // ==========================
@@ -232,10 +235,7 @@
   const locLat = document.getElementById('locLat');
   const locLon = document.getElementById('locLon');
 
-
-  // ==========================
   // Popup Logic
-  // ==========================
   addBtn.onclick = () => { popup.style.display = 'flex'; };
 
   cancelAdd.onclick = () => {
@@ -270,10 +270,7 @@
     locLon.value = "";
   };
 
-
-  // ==========================
-  // Weather Fetch Functions
-  // ==========================
+  // Weather Fetch
   async function getForecast(lat, lon) {
     try {
       weatherDiv.innerText = 'Loading…';
@@ -344,7 +341,6 @@
   }
 
   goBtn.addEventListener('click', updateWeather);
-
 </script>
 
 </body>
