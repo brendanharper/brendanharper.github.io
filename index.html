@@ -2,88 +2,242 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Copper Mountain Weather</title>
-
-  <!-- iOS Standalone & Web App Manifest -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Copper Mountain Weather">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+  <title>Weather</title>
   <style>
     body {
       font-family: sans-serif;
-      margin: 2em;
+      margin: 1em;
       background: #f5f5f5;
       color: #333;
     }
 
     h1 { text-align: center; }
 
-    .container {
+    /* Top control bar container */
+    .top-bar {
       display: flex;
-      gap: 2em;
-      margin-top: 2em;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1.5em;
     }
 
-    /* Left column */
-    .locations {
-      flex: 0 0 200px;
+    /* Left group */
+    .left-controls {
+      display: flex;
+      align-items: center;
+      gap: 1em;
     }
 
     select {
-      width: 100%;
-      padding: 0.5em;
-      font-size: 1em;
+      padding: 0.7em;
+      font-size: 1.1em;
+      border-radius: 8px;
+      width: 180px;
     }
 
-    /* Right column */
-    .forecast {
-      flex: 1;
+    button {
+      padding: 0.7em 1em;
+      font-size: 1.1em;
+      border-radius: 8px;
+      border: none;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:active {
+      background: #005fcc;
+    }
+
+    /* Add button */
+    #addBtn {
+      background: #28a745;
+      font-weight: bold;
+      padding: 0.7em 1em;
+    }
+
+    #addBtn:active {
+      background: #1f7f35;
+    }
+
+    /* Weather section */
+    #weatherContainer {
+      margin-top: 2em;
+      padding: 1em;
+      background: white;
+      border-radius: 10px;
+      min-height: 40px;
+    }
+
+    #locationTitle {
+      font-size: 1.4em;
+      font-weight: bold;
+      margin-bottom: 0.5em;
     }
 
     .period {
       border-bottom: 1px solid #ddd;
-      padding: 0.5em 0;
+      padding: 0.6em 0;
     }
 
     .period:last-child { border: none; }
 
     .temp { font-weight: bold; }
-
     .shortForecast { font-style: italic; }
+
+    /* ===== Popup styling ===== */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup {
+      background: white;
+      padding: 1.5em;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 350px;
+    }
+
+    .popup h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .popup input {
+      width: 100%;
+      padding: 0.6em;
+      font-size: 1em;
+      margin-top: 0.5em;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .popup-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1em;
+    }
+
+    .cancel-btn {
+      background: #aaa;
+      color: white;
+    }
   </style>
 </head>
 <body>
-  <h1>Copper Mountain Weather</h1>
+  <h1>Mountain Weather</h1>
 
-  <div class="container">
-    <!-- Left column: location list -->
-    <div class="locations">
-      <label for="locationSelect">Select Location:</label>
+  <!-- Top control bar -->
+  <div class="top-bar">
+
+    <!-- Left: dropdown + go -->
+    <div class="left-controls">
       <select id="locationSelect">
+        <option value="" selected disabled>Select Mountain...</option>
         <option value="copper">Copper Mountain</option>
         <option value="abasin">A-Basin</option>
       </select>
+
+      <button id="goBtn">Go</button>
     </div>
 
-    <!-- Right column: forecast display -->
-    <div class="forecast" id="weather">Loading…</div>
+    <!-- Right: add location -->
+    <button id="addBtn">+</button>
+  </div>
+
+  <!-- Weather results -->
+  <div id="weatherContainer">
+    <div id="locationTitle"></div>
+    <div id="weather"></div>
+  </div>
+
+  <!-- Popup for adding locations -->
+  <div class="popup-overlay" id="popupOverlay">
+    <div class="popup">
+      <h2>Add Location</h2>
+
+      <input id="locName" placeholder="Location Name">
+      <input id="locLat" placeholder="Latitude" type="number" step="0.00001">
+      <input id="locLon" placeholder="Longitude" type="number" step="0.00001">
+
+      <div class="popup-buttons">
+        <button class="cancel-btn" id="cancelAdd">Cancel</button>
+        <button id="saveAdd">Save</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Define coordinates for each location
+    // Default locations
     const locations = {
-      copper: { lat: 39.47523, lon: -106.15228 },
-      abasin: { lat: 39.6429, lon: -105.8711 } // A-Basin coordinates
+      copper: { lat: 39.47523, lon: -106.15228, name: "Copper Mountain" },
+      abasin: { lat: 39.6429, lon: -105.8711, name: "A-Basin" }
     };
 
     const weatherDiv = document.getElementById('weather');
+    const locationTitle = document.getElementById('locationTitle');
     const locationSelect = document.getElementById('locationSelect');
+    const goBtn = document.getElementById('goBtn');
+
+    const popup = document.getElementById('popupOverlay');
+    const addBtn = document.getElementById('addBtn');
+    const saveAdd = document.getElementById('saveAdd');
+    const cancelAdd = document.getElementById('cancelAdd');
+    const locName = document.getElementById('locName');
+    const locLat = document.getElementById('locLat');
+    const locLon = document.getElementById('locLon');
+
+    // ===== Popup open/close =====
+    addBtn.onclick = () => {
+      popup.style.display = 'flex';
+    };
+
+    cancelAdd.onclick = () => {
+      popup.style.display = 'none';
+      locName.value = "";
+      locLat.value = "";
+      locLon.value = "";
+    };
+
+    // Save new location
+    saveAdd.onclick = () => {
+      const name = locName.value.trim();
+      const lat = parseFloat(locLat.value);
+      const lon = parseFloat(locLon.value);
+
+      if (!name || isNaN(lat) || isNaN(lon)) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      // Convert location name into a safe key
+      const key = name.toLowerCase().replace(/\s+/g, "_");
+
+      locations[key] = { name, lat, lon };
+
+      // Add to dropdown
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = name;
+      locationSelect.appendChild(opt);
+
+      // Close popup
+      popup.style.display = 'none';
+      locName.value = "";
+      locLat.value = "";
+      locLon.value = "";
+    };
 
     async function getForecast(lat, lon) {
       try {
-        // Show loading text while fetching
         weatherDiv.innerText = 'Loading…';
 
         const pointRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
@@ -99,32 +253,70 @@
       }
     }
 
-    function displayForecast(periods) {
-      if (!periods) {
-        weatherDiv.innerText = 'Could not load forecast.';
-        return;
-      }
+function extractSnowAmount(text) {
+  // Look for patterns like "1 to 3 inches"
+  const rangeMatch = text.match(/(\d+)\s*(?:to|-)\s*(\d+)\s*inches/i);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}–${rangeMatch[2]} inches`;
+  }
 
-      weatherDiv.innerHTML = periods.map(p =>
-        `<div class="period">
-           <strong>${p.name}</strong>: <span class="shortForecast">${p.shortForecast}</span>, 
-           <span class="temp">${p.temperature}°${p.temperatureUnit}</span>
-         </div>`
-      ).join('');
-    }
+  // Look for single number: "around 4 inches"
+  const singleMatch = text.match(/around\s*(\d+)\s*inches/i);
+  if (singleMatch) {
+    return `${singleMatch[1]} inches`;
+  }
+
+  // Look for "up to X inches"
+  const upToMatch = text.match(/up to\s*(\d+)\s*inches/i);
+  if (upToMatch) {
+    return `Up to ${upToMatch[1]} inches`;
+  }
+
+  return null;
+}
+
+function displayForecast(periods) {
+  if (!periods) {
+    weatherDiv.innerText = 'Could not load forecast.';
+    return;
+  }
+
+  const limited = periods.slice(0, 6); // 3 days = 6 periods (day/night)
+
+  weatherDiv.innerHTML = limited.map(p => {
+    const snow = extractSnowAmount(p.detailedForecast);
+    return `
+      <div class="period">
+        <strong>${p.name}</strong>: 
+        <span class="shortForecast">${p.shortForecast}</span>, 
+        <span class="temp">${p.temperature}°${p.temperatureUnit}</span><br>
+        ${snow ? `<span style="color:#0077cc;"><strong>Estimated Snow:</strong> ${snow}</span>` : ""}
+      </div>
+    `;
+  }).join('');
+}
+
+
 
     async function updateWeather() {
       const selected = locationSelect.value;
-      const coords = locations[selected];
-      const periods = await getForecast(coords.lat, coords.lon);
+      if (!selected) {
+        weatherDiv.innerText = 'Please select a mountain.';
+        locationTitle.innerText = '';
+        return;
+      }
+
+      const selectedLoc = locations[selected];
+      locationTitle.innerText = selectedLoc.name;
+
+      const periods = await getForecast(selectedLoc.lat, selectedLoc.lon);
       displayForecast(periods);
     }
 
-    // Initial load
-    updateWeather();
+    goBtn.addEventListener('click', updateWeather);
 
-    // Update on selection change
-    locationSelect.addEventListener('change', updateWeather);
+    weatherDiv.innerText = '';
+    locationTitle.innerText = '';
   </script>
 </body>
 </html>
