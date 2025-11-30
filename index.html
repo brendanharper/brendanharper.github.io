@@ -2,9 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Weather</title>
+  <title>Mountain Weather</title>
 
-  <!-- RESTORED MANIFEST -->
+  <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
 
   <style>
@@ -235,16 +235,54 @@
   const locLat = document.getElementById('locLat');
   const locLon = document.getElementById('locLon');
 
-  // Popup Logic
-  addBtn.onclick = () => { popup.style.display = 'flex'; };
+  // ==========================
+  // LocalStorage helpers
+  // ==========================
+  function saveLocations() {
+    localStorage.setItem("locations", JSON.stringify(locations));
+  }
 
+  function loadLocations() {
+    const saved = localStorage.getItem("locations");
+    if (saved) {
+      const loaded = JSON.parse(saved);
+      Object.assign(locations, loaded);
+    }
+  }
+
+  function saveLastSelected(key) {
+    localStorage.setItem("lastSelectedLocation", key);
+  }
+
+  function loadLastSelected() {
+    return localStorage.getItem("lastSelectedLocation");
+  }
+
+  // ==========================
+  // Load saved locations
+  // ==========================
+  loadLocations();
+
+  // Populate dropdown
+  for (const key in locations) {
+    if (!document.querySelector(`#locationSelect option[value="${key}"]`)) {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = locations[key].name;
+      locationSelect.appendChild(opt);
+    }
+  }
+
+  // ==========================
+  // Popup logic
+  // ==========================
+  addBtn.onclick = () => { popup.style.display = 'flex'; };
   cancelAdd.onclick = () => {
     popup.style.display = 'none';
     locName.value = "";
     locLat.value = "";
     locLon.value = "";
   };
-
   saveAdd.onclick = () => {
     const name = locName.value.trim();
     const lat = parseFloat(locLat.value);
@@ -256,7 +294,6 @@
     }
 
     const key = name.toLowerCase().replace(/\s+/g, "_");
-
     locations[key] = { name, lat, lon };
 
     const opt = document.createElement("option");
@@ -264,25 +301,25 @@
     opt.textContent = name;
     locationSelect.appendChild(opt);
 
+    saveLocations();
+
     popup.style.display = 'none';
     locName.value = "";
     locLat.value = "";
     locLon.value = "";
   };
 
-  // Weather Fetch
+  // ==========================
+  // Weather functions
+  // ==========================
   async function getForecast(lat, lon) {
     try {
       weatherDiv.innerText = 'Loading…';
-
       const pointRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
       const pointJson = await pointRes.json();
-
       const forecastUrl = pointJson.properties.forecast;
-
       const forecastRes = await fetch(forecastUrl);
       const forecastJson = await forecastRes.json();
-
       return forecastJson.properties.periods;
     } catch (err) {
       console.error("Error fetching forecast:", err);
@@ -293,13 +330,10 @@
   function extractSnowAmount(text) {
     const rangeMatch = text.match(/(\d+)\s*(?:to|-)\s*(\d+)\s*inches/i);
     if (rangeMatch) return `${rangeMatch[1]}–${rangeMatch[2]} inches`;
-
     const singleMatch = text.match(/around\s*(\d+)\s*inches/i);
     if (singleMatch) return `${singleMatch[1]} inches`;
-
     const upToMatch = text.match(/up to\s*(\d+)\s*inches/i);
     if (upToMatch) return `Up to ${upToMatch[1]} inches`;
-
     return null;
   }
 
@@ -313,12 +347,17 @@
 
     weatherDiv.innerHTML = limited.map(p => {
       const snow = extractSnowAmount(p.detailedForecast);
+      const wind = p.windSpeed ? `<br><strong>Wind:</strong> ${p.windSpeed} ${p.windDirection ? p.windDirection : ''}` : '';
+      const windChill = p.windChill ? `<br><strong>Wind Chill:</strong> ${p.windChill}°${p.temperatureUnit}` : '';
+
       return `
         <div class="period">
           <strong>${p.name}</strong>:
           <span class="shortForecast">${p.shortForecast}</span>,
-          <span class="temp">${p.temperature}°${p.temperatureUnit}</span><br>
-          ${snow ? `<span style="color:#0077cc;"><strong>Estimated Snow:</strong> ${snow}</span>` : ""}
+          <span class="temp">${p.temperature}°${p.temperatureUnit}</span>
+          ${snow ? `<br><span style="color:#0077cc;"><strong>Estimated Snow:</strong> ${snow}</span>` : ''}
+          ${wind}
+          ${windChill}
         </div>
       `;
     }).join('');
@@ -326,7 +365,6 @@
 
   async function updateWeather() {
     const selected = locationSelect.value;
-
     if (!selected) {
       weatherDiv.innerText = "Please select a mountain.";
       locationTitle.innerText = "";
@@ -336,11 +374,23 @@
     const selectedLoc = locations[selected];
     locationTitle.innerText = selectedLoc.name;
 
+    saveLastSelected(selected);
+
     const periods = await getForecast(selectedLoc.lat, selectedLoc.lon);
     displayForecast(periods);
   }
 
   goBtn.addEventListener('click', updateWeather);
+
+  // Load last-selected location
+  const last = loadLastSelected();
+  if (last && locations[last]) {
+    locationSelect.value = last;
+    updateWeather();
+  } else {
+    weatherDiv.innerText = '';
+    locationTitle.innerText = '';
+  }
 </script>
 
 </body>
